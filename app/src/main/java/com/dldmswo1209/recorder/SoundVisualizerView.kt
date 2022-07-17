@@ -5,13 +5,11 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
-import kotlin.random.Random
 
 class SoundVisualizerView(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
-
     var onRequestCurrentAplitude: (() -> Int)? = null
 
     private val amplitudePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -29,14 +27,14 @@ class SoundVisualizerView(
         override fun run() {
             if(!isReplaying) {
                 // amplitude, Draw
-                val currentAmplitude = onRequestCurrentAplitude?.invoke()
+                val currentAmplitude = onRequestCurrentAplitude?.invoke() ?: 0
                 drawingAmplitudes = (listOf(currentAmplitude!!) + drawingAmplitudes)
             }else{
                 replayingPosition++
             }
-            invalidate()
+            invalidate() // 뷰 갱신
 
-            handler?.postDelayed(this, ACTION_INTERVAL)
+            handler?.postDelayed(this, ACTION_INTERVAL) // 20ms 후에 다시 실행
         }
     }
 
@@ -54,24 +52,24 @@ class SoundVisualizerView(
         var offsetX = drawingWidth.toFloat() // 시작 지점 화면의 오른쪽 끝
 
         drawingAmplitudes
-            .let { amplitudes ->
+            .let { amplitude ->
                 if(isReplaying){
-                    amplitudes.takeLast(replayingPosition)
+                    amplitude.takeLast(replayingPosition)
                 }else{
-                    amplitudes
+                    amplitude
                 }
             }
             .forEach { amplitude ->
-            val lineLength = amplitude / MAX_AMPLITUDE * drawingHeight * 0.8F
+                val lineLength = amplitude / MAX_AMPLITUDE * drawingHeight * 0.8F // 음성의 진폭 계산
 
-            offsetX -= LINE_SPACE
-            if(offsetX < 0) return@forEach
-            canvas.drawLine(
-                offsetX,
-                centerY - lineLength / 2F,
-                offsetX,
-                centerY + lineLength / 2F,
-                amplitudePaint
+                offsetX -= LINE_SPACE
+                if(offsetX < 0) return@forEach
+                canvas.drawLine(
+                    offsetX,
+                    centerY - lineLength / 2F,
+                    offsetX,
+                    centerY + lineLength / 2F,
+                    amplitudePaint
             )
         }
     }
@@ -81,7 +79,12 @@ class SoundVisualizerView(
         handler?.post(visualizeRepeatAction)
     }
     fun stopVisualizing(){
+        replayingPosition = 0
         handler?.removeCallbacks(visualizeRepeatAction)
+    }
+    fun clearVisualization(){
+        drawingAmplitudes = emptyList()
+        invalidate()
     }
 
     companion object{

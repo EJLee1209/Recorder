@@ -5,6 +5,7 @@
       <map>
         <entry key="../../../../../layout/custom_preview.xml" value="0.23333333333333334" />
         <entry key="app/src/main/res/drawable/ic_record.xml" value="0.179" />
+        <entry key="app/src/main/res/drawable/shape_oval_button.xml" value="0.179" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.2852584838867187" />
       </map>
     </option>

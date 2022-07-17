@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
     private var state = State.BEFORE_RECORDING
         set(value){
             field = value
+            // reset 버튼의 활성화/비활성화 설정(현재 상태가 녹음 후 또는 재생 중인 경우 활성화)
             binding.resetButton.isEnabled = (value == State.AFTER_RECORDING) || (value == State.ON_PLAYING)
             binding.recordButton.updateIconWithState(value)
         }
@@ -36,6 +37,11 @@ class MainActivity : AppCompatActivity() {
         initViews()
         bindViews()
         initVariables()
+    }
+
+    private fun requestAudioPermission(){ // 권한 요청 메소드
+        // requiredPermissions 의 권한을 요청, 요청 코드는 상수로 정의
+        requestPermissions(requiredPermissions, REQUEST_RECORD_AUDIO_PERMISSION)
     }
 
     override fun onRequestPermissionsResult(
@@ -55,11 +61,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun requestAudioPermission(){
-        requestPermissions(requiredPermissions, REQUEST_RECORD_AUDIO_PERMISSION)
-    }
-
     private fun initViews() {
         binding.recordButton.updateIconWithState(state)
     }
@@ -70,37 +71,46 @@ class MainActivity : AppCompatActivity() {
         }
         binding.resetButton.setOnClickListener {
             stopPlaying()
+            binding.soundVisualizerView.clearVisualization() // 시각화 초기화
+            binding.recordTimeTextView.clearCountTime() // 녹음 시간 초기화
             state = State.BEFORE_RECORDING
         }
         binding.recordButton.setOnClickListener{
-            when(state){
-                State.BEFORE_RECORDING -> {
-                    startRecording()
+            when(state){ // 현재 상태에 따라 다른 메소드 호출
+                State.BEFORE_RECORDING -> { // 녹음 전
+                    startRecording() // 녹음 시작
                 }
-                State.ON_RECORDING -> {
-                    stopRecording()
+                State.ON_RECORDING -> { // 녹음 중
+                    stopRecording() // 녹음 중단
                 }
-                State.AFTER_RECORDING -> {
-                    startPlaying()
+                State.AFTER_RECORDING -> { // 녹음 후
+                    startPlaying() // 재생
                 }
-                State.ON_PLAYING -> {
-                    stopPlaying()
+                State.ON_PLAYING -> { // 재생 중
+                    stopPlaying() // 재생 중단
                 }
             }
         }
     }
 
     private fun initVariables(){
-        state = State.BEFORE_RECORDING
+        state = State.BEFORE_RECORDING // 초기 상태(녹음 전)
     }
 
     private fun startRecording(){
-        recorder = MediaRecorder().apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            setOutputFile(recordingFilePath)
-            prepare()
+        // 녹음 시작을 위한 메소드
+        recorder = MediaRecorder()
+            .apply {
+            // 녹음을 시작하기 위한 필수 과정들
+                setAudioSource(MediaRecorder.AudioSource.MIC) // 소스 지정
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP) // 포맷 지정
+                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB) // 인코더 지정
+                setOutputFile(recordingFilePath) // 파일을 지정
+                prepare()
+            }
+        player?.setOnCompletionListener {
+            stopPlaying()
+            state = State.AFTER_RECORDING
         }
         recorder?.start()
         binding.soundVisualizerView.startVisualizing(false)
@@ -120,18 +130,18 @@ class MainActivity : AppCompatActivity() {
         state = State.AFTER_RECORDING
     }
 
-    private fun startPlaying(){
-        player = MediaPlayer().apply {
+    private fun startPlaying(){ // 재생 시작 메소드
+        player = MediaPlayer().apply { // 녹음된 음성을 재생시키기 위한 MediaPlayer
             setDataSource(recordingFilePath)
             prepare()
         }
-        player?.start()
-        binding.soundVisualizerView.startVisualizing(true)
+        player?.start() // 재생 시작
+        binding.soundVisualizerView.startVisualizing(true) // 음성 시각화
         binding.recordTimeTextView.startCountUp()
         state = State.ON_PLAYING
     }
-    private fun stopPlaying(){
-        player?.release()
+    private fun stopPlaying(){ // 재생 멈춤 메소드
+        player?.release() // 메모리 해제
         player = null
         binding.soundVisualizerView.stopVisualizing()
         binding.recordTimeTextView.stopCountUp()
